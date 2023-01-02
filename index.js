@@ -10,9 +10,12 @@ const Playlist = require('./models/Playlist');
 const Track = require('./models/Track');
 const PlaylistTrack = require('./models/playlist.track');
 const Passport = require('./models/artist.passport');
+const {response} = require("express");
 
 const port = process.env.PORT || 3000;
 const app = express();
+
+app.use(bodyParser.json());
 
 
 async function verifyDbCon(){
@@ -193,6 +196,48 @@ app.get("/api/artists/:id",(req, res) => {
 
 app.get("/api/albums/:id",(req, res) => {
 
+});
+
+app.delete("/api/playlists/:id",(req, res) => {
+    let {id} = req.params;
+    Playlist
+        .findByPk(id)
+        .then((playlist) => {
+            if (playlist){
+                return playlist.setTracks([]).then(() => {
+                    return playlist.destroy();
+                });
+            }else{
+                return Promise.reject();
+            }
+        })
+        .then(() => {
+            res.status(204).send();
+        })
+        .catch(() => {
+            res.status(404).send();
+        })
+});
+
+app.post("/api/artists",(req, res) => {
+    let {name, surname, email, age, password} = req.body;
+    Artist.create({
+        name: name,
+        surname: surname,
+        email: email,
+        age: age,
+        password: password
+    }).then((artist) => {
+        res.json(artist);
+    },(response)=>{
+        res.status(422).json({errors: response.errors.map((error) => {
+                return {
+                    attribute: error.path,
+                    message: error.message
+                }
+            })
+        });
+    }).catch(error => console.error(error));
 });
 
 app.listen(port, () => {
